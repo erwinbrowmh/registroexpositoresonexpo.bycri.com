@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Expositores | ONEXPO 2026</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <img src="assets/ONEXPO+LOGO+EVENTO-02.webp" alt="ONEXPO 2026 Logo" class="logo">
+            <h1>Registro de Expositores 2026</h1>
+        </div>
+    </header>
+
+    <div class="progress-container container">
+        <div class="progress-bar-background">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <ul class="progress-steps">
+            <li class="step active" data-step="1">
+                <div class="step-icon"><i class="fas fa-building"></i></div>
+                <span class="step-name">Empresa</span>
+            </li>
+            <li class="step" data-step="2">
+                <div class="step-icon"><i class="fas fa-clipboard-check"></i></div>
+                <span class="step-name">Stand</span>
+            </li>
+            <li class="step" data-step="3">
+                <div class="step-icon"><i class="fas fa-users"></i></div>
+                <span class="step-name">Staff</span>
+            </li>
+            <li class="step" data-step="4">
+                <div class="step-icon"><i class="fas fa-file-download"></i></div>
+                <span class="step-name">Finalizar</span>
+            </li>
+        </ul>
+    </div>
+
+    <main class="container">
+        <div class="form-step active" id="step-1">
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-info-circle"></i> Datos de la Empresa</h2>
+                    <p>Completa la información básica de tu participación.</p>
+                </div>
+                <form id="expositorForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Nombre(s)</label>
+                            <input type="text" name="nombre" required placeholder="Ej. Juan">
+                        </div>
+                        <div class="form-group">
+                            <label>Apellido(s)</label>
+                            <input type="text" name="apellido" required placeholder="Ej. Pérez">
+                        </div>
+                        <div class="form-group">
+                            <label>Correo Electrónico</label>
+                            <input type="email" name="correo" required placeholder="empresa@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="tel" name="telefono" placeholder="229 000 0000">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Razón Social / Empresa</label>
+                            <input type="text" name="razon_social" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Giro de la Empresa</label>
+                            <input type="text" name="giro_empresa">
+                        </div>
+                        <div class="form-group">
+                            <label>Logotipo (JPG, PNG)</label>
+                            <div class="custom-file-upload">
+                                <input type="file" id="logo" name="logo" accept=".jpg,.jpeg,.png">
+                                <label for="logo"><i class="fas fa-cloud-upload-alt"></i> Subir Logo</label>
+                                <span class="file-name" id="logo-name">Ningún archivo seleccionado</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-navigation">
+                        <button type="button" class="btn btn-primary next-step-btn">Siguiente <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <div class="form-step" id="step-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-tools"></i> Requerimientos del Stand</h2>
+                </div>
+                <div class="form-group">
+                    <label>Subir Hoja Responsiva Firmada (PDF)</label>
+                    <div class="custom-file-upload">
+                        <input type="file" id="hoja_responsiva" name="hoja_responsiva" accept=".pdf">
+                        <label for="hoja_responsiva" class="btn btn-secondary"><i class="fas fa-file-pdf"></i> Adjuntar PDF</label>
+                        <span class="file-name" id="hoja-responsiva-name">Ningún archivo seleccionado</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="checkbox-card">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="mampara" name="mampara">
+                        <label for="mampara"><strong>¿Requiere Mampara?</strong></label>
+                    </div>
+                </div>
+                <div class="form-group" id="rotulo_group" style="display: none; margin-top: 15px;">
+                    <label>Texto para el Rótulo del Antepecho</label>
+                    <input type="text" id="rotulo_antepecho" name="rotulo_antepecho" placeholder="Nombre que aparecerá en el stand">
+                </div>
+                <div class="form-navigation">
+                    <button type="button" class="btn btn-secondary prev-step-btn"><i class="fas fa-arrow-left"></i> Anterior</button>
+                    <button type="button" class="btn btn-primary next-step-btn">Siguiente <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </section>
+        </div>
+
+        <div class="form-step" id="step-3">
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-id-card"></i> Gestión de Participantes</h2>
+                    <p>Registra al personal que estará en el stand para sus gafetes.</p>
+                </div>
+                <form id="participantForm" class="staff-form">
+                    <div class="form-grid">
+                        <input type="hidden" id="participantId" name="id">
+                        <input type="hidden" id="expositor_id_participant" name="expositor_id">
+                        <input type="text" id="participantName" name="nombre" placeholder="Nombre Completo" required>
+                        <input type="text" id="participantRole" name="cargo" placeholder="Cargo (Ej. Edecán)" required>
+                        <button type="submit" id="addParticipantBtn" class="btn btn-accent"><i class="fas fa-plus"></i> Añadir</button>
+                        <button type="button" id="saveParticipantBtn" class="btn btn-primary" style="display: none;"><i class="fas fa-save"></i> Guardar Cambios</button>
+                        <button type="button" id="cancelEditParticipantBtn" class="btn btn-secondary" style="display: none;"><i class="fas fa-times"></i> Cancelar Edición</button>
+                    </div>
+                </form>
+                <div class="table-container">
+                    <table id="participantsTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cargo</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+                <div class="form-navigation">
+                    <button type="button" class="btn btn-secondary prev-step-btn"><i class="fas fa-arrow-left"></i> Anterior</button>
+                    <button type="button" class="btn btn-primary next-step-btn">Siguiente <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </section>
+        </div>
+
+        <div class="form-step" id="step-4">
+            <section class="card text-center">
+                <div class="card-header">
+                    <h2><i class="fas fa-check-circle"></i> Documentación Final</h2>
+                </div>
+                <div class="download-grid">
+                    <a href="#" class="download-item" id="manualExpositorLink">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Manual del Expositor</span>
+                    </a>
+                    <a href="#" class="download-item" id="hojaResponsivaTemplateLink">
+                        <i class="fas fa-file-signature"></i>
+                        <span>Plantilla de Responsiva</span>
+                    </a>
+                </div>
+                <div class="form-navigation" style="justify-content: center;">
+                    <button type="button" id="finalizarRegistroBtn" class="btn btn-success btn-lg next-step-btn">Finalizar Registro <i class="fas fa-save"></i></button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 ONEXPO Nacional. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
