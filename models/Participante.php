@@ -1,9 +1,5 @@
 <?php
-
-require_once __DIR__ . '/../config/database.php';
-
-class Participante
-{
+class Participante {
     private $conn;
     private $table_name = "participantes";
 
@@ -14,21 +10,19 @@ class Participante
     public $created_at;
     public $updated_at;
 
-    public function __construct()
-    {
-        $database = Database::getInstance();
-        $this->conn = $database->getConnection();
+    public $error; // Para almacenar mensajes de error de PDO
+    public $errorCode; // Para almacenar códigos de error de PDO
+
+    public function __construct($db) {
+        $this->conn = $db;
     }
 
-    public function create()
-    {
+    function create() {
         $query = "INSERT INTO " . $this->table_name . "
                   SET
                       expositor_id=:expositor_id,
                       nombre_completo=:nombre_completo,
-                      cargo_puesto=:cargo_puesto,
-                      created_at=CURRENT_TIMESTAMP,
-                      updated_at=CURRENT_TIMESTAMP";
+                      cargo_puesto=:cargo_puesto";
 
         $stmt = $this->conn->prepare($query);
 
@@ -38,57 +32,46 @@ class Participante
         $this->cargo_puesto = htmlspecialchars(strip_tags($this->cargo_puesto));
 
         // bind values
-        $stmt->bindParam(":expositor_id", $this->expositor_id, PDO::PARAM_INT);
+        $stmt->bindParam(":expositor_id", $this->expositor_id);
         $stmt->bindParam(":nombre_completo", $this->nombre_completo);
         $stmt->bindParam(":cargo_puesto", $this->cargo_puesto);
 
-        try {
-            if ($stmt->execute()) {
-                return true;
-            }
-        } catch (PDOException $e) {
-            $this->error = $e->getMessage();
-            error_log("Error al crear participante: " . $this->error);
+        if ($stmt->execute()) {
+            $this->id = $this->conn->lastInsertId();
+            return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 
-    public $error;
-
-    public function read()
-    {
+    function read() {
         $query = "SELECT
-                    id, expositor_id, nombre_completo, cargo_puesto,
-                    created_at, updated_at
-                FROM
+                    id, expositor_id, nombre_completo, cargo_puesto, created_at, updated_at
+                  FROM
                     " . $this->table_name . "
-                WHERE
-                    expositor_id = ?
-                ORDER BY
+                  ORDER BY
                     created_at DESC";
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->expositor_id, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt;
     }
 
-    public function readOne()
-    {
+    function readOne() {
         $query = "SELECT
-                    id, expositor_id, nombre_completo, cargo_puesto,
-                    created_at, updated_at
-                FROM
+                    id, expositor_id, nombre_completo, cargo_puesto, created_at, updated_at
+                  FROM
                     " . $this->table_name . "
-                WHERE
+                  WHERE
                     id = ?
-                LIMIT
+                  LIMIT
                     0,1";
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(1, $this->id);
         $stmt->execute();
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -104,10 +87,10 @@ class Participante
         return false;
     }
 
-    public function update()
-    {
+    function update() {
         $query = "UPDATE " . $this->table_name . "
                   SET
+                      expositor_id=:expositor_id,
                       nombre_completo=:nombre_completo,
                       cargo_puesto=:cargo_puesto,
                       updated_at=CURRENT_TIMESTAMP
@@ -117,42 +100,40 @@ class Participante
         $stmt = $this->conn->prepare($query);
 
         // sanitize
+        $this->expositor_id = htmlspecialchars(strip_tags($this->expositor_id));
         $this->nombre_completo = htmlspecialchars(strip_tags($this->nombre_completo));
         $this->cargo_puesto = htmlspecialchars(strip_tags($this->cargo_puesto));
         $this->id = htmlspecialchars(strip_tags($this->id));
 
         // bind values
+        $stmt->bindParam(":expositor_id", $this->expositor_id);
         $stmt->bindParam(":nombre_completo", $this->nombre_completo);
         $stmt->bindParam(":cargo_puesto", $this->cargo_puesto);
         $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
 
-        try {
-            if ($stmt->execute()) {
-                return true;
-            }
-        } catch (PDOException $e) {
-            error_log("Error al actualizar participante con ID " . $this->id . ": " . $e->getMessage());
+        if ($stmt->execute()) {
+            return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 
-    public function delete()
-    {
+    function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         $stmt = $this->conn->prepare($query);
 
         $this->id = htmlspecialchars(strip_tags($this->id));
-        $stmt->bindParam(1, $this->id, PDO::PARAM_INT);
+        $stmt->bindParam(1, $this->id);
 
-        try {
-            if ($stmt->execute()) {
-                return true;
-            }
-        } catch (PDOException $e) {
-            error_log("Error al eliminar participante con ID " . $this->id . ": " . $e->getMessage());
+        if ($stmt->execute()) {
+            return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 }
+?>

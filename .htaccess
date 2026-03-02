@@ -1,0 +1,35 @@
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+</IfModule>
+
+<IfModule mod_php7.c>
+    php_value session.gc_maxlifetime 2592000
+    php_value session.cookie_lifetime 2592000
+    php_value upload_max_filesize 55M
+    php_value post_max_size 60M
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule mod_php5.c>
+    php_value session.gc_maxlifetime 2592000
+    php_value session.cookie_lifetime 2592000
+    php_value upload_max_filesize 55M
+    php_value post_max_size 60M
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 55M
+    php_value post_max_size 60M
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
