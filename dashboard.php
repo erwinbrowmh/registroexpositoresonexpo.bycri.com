@@ -239,6 +239,14 @@ function res_url($u) {
             align-items: center;
             justify-content: space-between;
         }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .pulse-animation {
+            animation: pulse-red 2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -284,6 +292,11 @@ function res_url($u) {
                         <i class="fas fa-file-contract me-2"></i> Hoja Responsiva
                     </a>
                 </li>
+                <li class="nav-item mt-3">
+                    <a href="assets/docs/registro_montaje.pdf" target="_blank" class="nav-link text-warning fw-bold border border-warning rounded bg-dark shadow-sm pulse-animation">
+                        <i class="fas fa-file-download me-2"></i> Hoja de Registro de Montaje <span class="badge bg-danger ms-1">¡AQUÍ ESTOY!</span>
+                    </a>
+                </li>
             </ul>
             <hr>
             <div class="dropdown">
@@ -317,6 +330,34 @@ function res_url($u) {
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
+
+            <!-- Prominent Info Alert -->
+            <div class="alert alert-warning border-3 border-warning shadow-lg mb-4 p-4 alert-dismissible fade show" role="alert" style="background-color: #fff3cd;">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-exclamation-circle text-danger fa-2x me-3 pulse-animation"></i>
+                    <h3 class="alert-heading fw-bold text-dark mb-0">¡AVISO IMPORTANTE!</h3>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <p class="fs-5 mb-3">
+                    Los archivos que necesita llenar se encuentran en el <strong>menú lateral</strong>, en la sección de <span class="badge bg-dark text-warning">DOCUMENTOS</span>.
+                </p>
+                <div class="mt-3 p-3 bg-white rounded border border-warning shadow-sm">
+                    <ul class="list-unstyled mb-0 fs-5">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Es <strong>muy importante</strong> que complete la documentación solicitada.
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-file-upload text-primary me-2"></i>
+                            La <strong>Hoja Responsiva</strong> debe firmarla y <strong>subirla</strong> en la sección correspondiente de su perfil (abajo).
+                        </li>
+                        <li>
+                            <i class="fas fa-clipboard-check text-danger me-2"></i>
+                            La <strong>Hoja de Registro de Montaje</strong> debe descargarla y enviarla al correo <a href="mailto:expositoresonexpo@cricongresos.com" class="fw-bold text-dark">expositoresonexpo@cricongresos.com</a>.
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
             <div class="tab-content">
                 <!-- Perfil Tab -->
