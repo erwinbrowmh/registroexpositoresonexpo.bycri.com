@@ -4,6 +4,33 @@ require_once __DIR__ . '/../lib/Security.php';
 
 session_start();
 
+// Check for auto-login
+if (!isset($_SESSION['soporte_logged_in']) || $_SESSION['soporte_logged_in'] !== true) {
+    if (isset($_COOKIE['soporte_remember_me'])) {
+        $parts = explode(':', $_COOKIE['soporte_remember_me']);
+        if (count($parts) === 2) {
+            list($selector, $validator) = $parts;
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("SELECT * FROM soporte_tokens WHERE selector = ? AND expiry > NOW()");
+                $stmt->execute([$selector]);
+                $token = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($token && hash_equals($token['hashed_validator'], hash('sha256', $validator))) {
+                    session_regenerate_id(true);
+                    $_SESSION['soporte_logged_in'] = true;
+                    $_SESSION['last_activity'] = time();
+                    $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                    header('Location: dashboard.php');
+                    exit;
+                }
+            } catch (Exception $e) {
+                // Ignore errors
+            }
+        }
+    }
+}
+
 // Security Headers
 header("X-Frame-Options: DENY");
 header("X-XSS-Protection: 1; mode=block");
@@ -33,6 +60,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['soporte_logged_in'] = true;
                 $_SESSION['last_activity'] = time();
                 $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                
+                // Remember Me Logic
+                if (isset($_POST['remember_me'])) {
+                    $selector = bin2hex(random_bytes(12));
+                    $validator = bin2hex(random_bytes(32));
+                    $hashed_validator = hash('sha256', $validator);
+                    $expiry = date('Y-m-d H:i:s', time() + (86400 * 30)); // 30 days
+
+                    try {
+                        $db = Database::getInstance()->getConnection();
+                        $stmt_token = $db->prepare("INSERT INTO soporte_tokens (selector, hashed_validator, expiry) VALUES (?, ?, ?)");
+                        $stmt_token->execute([$selector, $hashed_validator, $expiry]);
+
+                        setcookie('soporte_remember_me', $selector . ':' . $validator, time() + (86400 * 30), '/', '', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', true);
+                    } catch (Exception $e) {
+                        // Ignore DB errors
+                    }
+                }
+
                 header('Location: dashboard.php');
                 exit;
             } else {
@@ -104,6 +150,10 @@ $csrf_token = Security::generateCSRFToken();
                                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
                                 <input type="password" class="form-control border-start-0 ps-0 bg-light" id="code" name="code" required autofocus autocomplete="off" placeholder="Ingrese su código">
                             </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                            <label class="form-check-label text-muted small" for="remember_me">Recordarme</label>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
                             <i class="fas fa-sign-in-alt me-2"></i> Ingresar al Panel

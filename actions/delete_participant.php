@@ -21,12 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$id, $expositor_id]);
             
             if ($stmt->rowCount() > 0) {
-                $_SESSION['message'] = "Participante eliminado.";
+                $_SESSION['message'] = "Expositor eliminado.";
             } else {
-                $_SESSION['error'] = "No se pudo eliminar el participante.";
+                $_SESSION['error'] = "No se pudo eliminar el expositor.";
             }
         } catch (Exception $e) {
-            $_SESSION['error'] = "Error al eliminar participante.";
+            $_SESSION['error'] = "Error al eliminar expositor.";
         }
     }
 }

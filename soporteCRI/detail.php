@@ -13,8 +13,35 @@ header("X-Content-Type-Options: nosniff");
 header("Referrer-Policy: strict-origin-when-cross-origin");
 
 if (!isset($_SESSION['soporte_logged_in']) || $_SESSION['soporte_logged_in'] !== true) {
-    header('Location: index.php');
-    exit;
+    // Check for auto-login if session is missing
+    $auto_login_success = false;
+    if (isset($_COOKIE['soporte_remember_me'])) {
+        $parts = explode(':', $_COOKIE['soporte_remember_me']);
+        if (count($parts) === 2) {
+            list($selector, $validator) = $parts;
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("SELECT * FROM soporte_tokens WHERE selector = ? AND expiry > NOW()");
+                $stmt->execute([$selector]);
+                $token = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($token && hash_equals($token['hashed_validator'], hash('sha256', $validator))) {
+                    session_regenerate_id(true);
+                    $_SESSION['soporte_logged_in'] = true;
+                    $_SESSION['last_activity'] = time();
+                    $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                    $auto_login_success = true;
+                }
+            } catch (Exception $e) {
+                // Ignore DB errors
+            }
+        }
+    }
+    
+    if (!$auto_login_success) {
+        header('Location: index.php');
+        exit;
+    }
 }
 
 // Validate Session Security

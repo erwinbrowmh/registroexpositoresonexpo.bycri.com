@@ -1,108 +1,73 @@
 <?php
-
-require_once __DIR__ . '/../config/database.php';
-
-class Expositor
-{
+class Participante {
     private $conn;
-    private $table_name = "expositores";
+    private $table_name = "participantes";
 
     public $id;
-    public $nombre;
-    public $apellido;
-    public $correo;
-    public $telefono;
-    public $razon_social;
-    public $cargo_contacto;
-    public $giro_empresa;
-    public $logo_ruta;
-    public $mampara;
-    public $rotulo_antepecho;
-    public $hoja_responsiva_ruta;
+    public $expositor_id;
+    public $nombre_completo;
+    public $cargo_puesto;
     public $created_at;
     public $updated_at;
 
-    public function __construct()
-    {
-        $database = Database::getInstance();
-        $this->conn = $database->getConnection();
+    public $error; // Para almacenar mensajes de error de PDO
+    public $errorCode; // Para almacenar códigos de error de PDO
+
+    public function __construct($db) {
+        $this->conn = $db;
     }
 
-    public function create()
-    {
+    function create() {
         $query = "INSERT INTO " . $this->table_name . "
                   SET
-                      nombre=:nombre,
-                      apellido=:apellido,
-                      correo=:correo,
-                      telefono=:telefono,
-                      razon_social=:razon_social,
-                      cargo_contacto=:cargo_contacto,
-                      giro_empresa=:giro_empresa,
-                      logo_ruta=:logo_ruta,
-                      mampara=:mampara,
-                      rotulo_antepecho=:rotulo_antepecho,
-                      hoja_responsiva_ruta=:hoja_responsiva_ruta,
-                      created_at=CURRENT_TIMESTAMP,
-                      updated_at=CURRENT_TIMESTAMP";
+                      expositor_id=:expositor_id,
+                      nombre_completo=:nombre_completo,
+                      cargo_puesto=:cargo_puesto";
 
         $stmt = $this->conn->prepare($query);
 
         // sanitize
-        $this->nombre = htmlspecialchars(strip_tags($this->nombre));
-        $this->apellido = htmlspecialchars(strip_tags($this->apellido));
-        $this->correo = htmlspecialchars(strip_tags($this->correo));
-        $this->telefono = htmlspecialchars(strip_tags($this->telefono));
-        $this->razon_social = htmlspecialchars(strip_tags($this->razon_social));
-        $this->cargo_contacto = htmlspecialchars(strip_tags($this->cargo_contacto));
-        $this->giro_empresa = htmlspecialchars(strip_tags($this->giro_empresa));
-        $this->logo_ruta = htmlspecialchars(strip_tags($this->logo_ruta));
-        // Ensure mampara is an integer (0 or 1)
-        $this->mampara = (int) filter_var($this->mampara, FILTER_VALIDATE_BOOLEAN);
-        $this->rotulo_antepecho = htmlspecialchars(strip_tags($this->rotulo_antepecho));
-        $this->hoja_responsiva_ruta = htmlspecialchars(strip_tags($this->hoja_responsiva_ruta));
+        $this->expositor_id = htmlspecialchars(strip_tags($this->expositor_id));
+        $this->nombre_completo = htmlspecialchars(strip_tags($this->nombre_completo));
+        $this->cargo_puesto = htmlspecialchars(strip_tags($this->cargo_puesto));
 
         // bind values
-        $stmt->bindParam(":nombre", $this->nombre);
-        $stmt->bindParam(":apellido", $this->apellido);
-        $stmt->bindParam(":correo", $this->correo);
-        $stmt->bindParam(":telefono", $this->telefono);
-        $stmt->bindParam(":razon_social", $this->razon_social);
-        $stmt->bindParam(":cargo_contacto", $this->cargo_contacto);
-        $stmt->bindParam(":giro_empresa", $this->giro_empresa);
-        $stmt->bindParam(":logo_ruta", $this->logo_ruta);
-        $stmt->bindParam(":mampara", $this->mampara, PDO::PARAM_INT);
-        $stmt->bindParam(":rotulo_antepecho", $this->rotulo_antepecho);
-        $stmt->bindParam(":hoja_responsiva_ruta", $this->hoja_responsiva_ruta);
+        $stmt->bindParam(":expositor_id", $this->expositor_id);
+        $stmt->bindParam(":nombre_completo", $this->nombre_completo);
+        $stmt->bindParam(":cargo_puesto", $this->cargo_puesto);
 
-        try {
-            if ($stmt->execute()) {
-                $this->id = $this->conn->lastInsertId();
-                return true;
-            }
-        } catch (PDOException $e) {
-            $this->error = $e->getMessage();
-            $this->errorCode = $stmt->errorCode();
-            error_log("Error al crear expositor: " . $this->error);
+        if ($stmt->execute()) {
+            $this->id = $this->conn->lastInsertId();
+            return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 
-    public $error;
-    public $errorCode;
-
-    public function readOne()
-    {
+    function read() {
         $query = "SELECT
-                    id, nombre, apellido, correo, telefono, razon_social, cargo_contacto,
-                    giro_empresa, logo_ruta, mampara, rotulo_antepecho, hoja_responsiva_ruta,
-                    created_at, updated_at
-                FROM
+                    id, expositor_id, nombre_completo, cargo_puesto, created_at, updated_at
+                  FROM
                     " . $this->table_name . "
-                WHERE
+                  ORDER BY
+                    created_at DESC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+
+        return $stmt;
+    }
+
+    function readOne() {
+        $query = "SELECT
+                    id, expositor_id, nombre_completo, cargo_puesto, created_at, updated_at
+                  FROM
+                    " . $this->table_name . "
+                  WHERE
                     id = ?
-                LIMIT
+                  LIMIT
                     0,1";
 
         $stmt = $this->conn->prepare($query);
@@ -112,17 +77,9 @@ class Expositor
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
-            $this->nombre = $row['nombre'];
-            $this->apellido = $row['apellido'];
-            $this->correo = $row['correo'];
-            $this->telefono = $row['telefono'];
-            $this->razon_social = $row['razon_social'];
-            $this->cargo_contacto = $row['cargo_contacto'];
-            $this->giro_empresa = $row['giro_empresa'];
-            $this->logo_ruta = $row['logo_ruta'];
-            $this->mampara = (bool) $row['mampara']; // Cast to boolean when reading
-            $this->rotulo_antepecho = $row['rotulo_antepecho'];
-            $this->hoja_responsiva_ruta = $row['hoja_responsiva_ruta'];
+            $this->expositor_id = $row['expositor_id'];
+            $this->nombre_completo = $row['nombre_completo'];
+            $this->cargo_puesto = $row['cargo_puesto'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             return true;
@@ -130,21 +87,12 @@ class Expositor
         return false;
     }
 
-    public function update()
-    {
+    function update() {
         $query = "UPDATE " . $this->table_name . "
                   SET
-                      nombre=:nombre,
-                      apellido=:apellido,
-                      correo=:correo,
-                      telefono=:telefono,
-                      razon_social=:razon_social,
-                      cargo_contacto=:cargo_contacto,
-                      giro_empresa=:giro_empresa,
-                      logo_ruta=:logo_ruta,
-                      mampara=:mampara,
-                      rotulo_antepecho=:rotulo_antepecho,
-                      hoja_responsiva_ruta=:hoja_responsiva_ruta,
+                      expositor_id=:expositor_id,
+                      nombre_completo=:nombre_completo,
+                      cargo_puesto=:cargo_puesto,
                       updated_at=CURRENT_TIMESTAMP
                   WHERE
                       id = :id";
@@ -152,47 +100,27 @@ class Expositor
         $stmt = $this->conn->prepare($query);
 
         // sanitize
-        $this->nombre = htmlspecialchars(strip_tags($this->nombre));
-        $this->apellido = htmlspecialchars(strip_tags($this->apellido));
-        $this->correo = htmlspecialchars(strip_tags($this->correo));
-        $this->telefono = htmlspecialchars(strip_tags($this->telefono));
-        $this->razon_social = htmlspecialchars(strip_tags($this->razon_social));
-        $this->cargo_contacto = htmlspecialchars(strip_tags($this->cargo_contacto));
-        $this->giro_empresa = htmlspecialchars(strip_tags($this->giro_empresa));
-        $this->logo_ruta = htmlspecialchars(strip_tags($this->logo_ruta));
-        // Ensure mampara is an integer (0 or 1)
-        $this->mampara = (int) filter_var($this->mampara, FILTER_VALIDATE_BOOLEAN);
-        $this->rotulo_antepecho = htmlspecialchars(strip_tags($this->rotulo_antepecho));
-        $this->hoja_responsiva_ruta = htmlspecialchars(strip_tags($this->hoja_responsiva_ruta));
+        $this->expositor_id = htmlspecialchars(strip_tags($this->expositor_id));
+        $this->nombre_completo = htmlspecialchars(strip_tags($this->nombre_completo));
+        $this->cargo_puesto = htmlspecialchars(strip_tags($this->cargo_puesto));
         $this->id = htmlspecialchars(strip_tags($this->id));
 
         // bind values
-        $stmt->bindParam(":nombre", $this->nombre);
-        $stmt->bindParam(":apellido", $this->apellido);
-        $stmt->bindParam(":correo", $this->correo);
-        $stmt->bindParam(":telefono", $this->telefono);
-        $stmt->bindParam(":razon_social", $this->razon_social);
-        $stmt->bindParam(":cargo_contacto", $this->cargo_contacto);
-        $stmt->bindParam(":giro_empresa", $this->giro_empresa);
-        $stmt->bindParam(":logo_ruta", $this->logo_ruta);
-        $stmt->bindParam(":mampara", $this->mampara, PDO::PARAM_INT);
-        $stmt->bindParam(":rotulo_antepecho", $this->rotulo_antepecho);
-        $stmt->bindParam(":hoja_responsiva_ruta", $this->hoja_responsiva_ruta);
-        $stmt->bindParam(':id', $this->id);
+        $stmt->bindParam(":expositor_id", $this->expositor_id);
+        $stmt->bindParam(":nombre_completo", $this->nombre_completo);
+        $stmt->bindParam(":cargo_puesto", $this->cargo_puesto);
+        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
 
-        try {
-            if ($stmt->execute()) {
-                return true;
-            }
-        } catch (PDOException $e) {
-            error_log("Error al actualizar expositor con ID " . $this->id . ": " . $e->getMessage());
+        if ($stmt->execute()) {
+            return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 
-    public function delete()
-    {
+    function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         $stmt = $this->conn->prepare($query);
 
@@ -203,6 +131,9 @@ class Expositor
             return true;
         }
 
+        $this->error = $stmt->errorInfo()[2];
+        $this->errorCode = $stmt->errorCode();
         return false;
     }
 }
+?>

@@ -47,21 +47,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $empresa = $result['nombre_empresa']; // Force company name from DB
     
                     if ($current_count >= $limit) {
-                        $_SESSION['error'] = "Cupo de su empresa alcanzado ({$limit} participantes).";
+                        $_SESSION['error'] = "Cupo de su empresa alcanzado ({$limit} expositores).";
                     } else {
                         // 2. Insert
                         $stmt = $db->prepare("INSERT INTO participantes (nombre_completo, cargo_puesto, empresa, correo, telefono, expositor_id) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$nombre, $cargo, $empresa, $correo, $telefono, $expositor_id]);
-                        $_SESSION['message'] = "Participante agregado exitosamente.";
+                        $_SESSION['message'] = "Expositor agregado exitosamente.";
                         
                         // Opcional: Registrar log
-                        error_log("Participante agregado: $nombre ($correo) por expositor ID: $expositor_id");
+                        error_log("Expositor agregado: $nombre ($correo) por expositor ID: $expositor_id");
                     }
                 } else {
                     $_SESSION['error'] = "Error al obtener datos de la empresa.";
                 }
             } catch (Exception $e) {
-                $_SESSION['error'] = "Error al agregar participante: " . $e->getMessage();
+                $_SESSION['error'] = "Error al agregar expositor: " . $e->getMessage();
             }
         }
     } else {

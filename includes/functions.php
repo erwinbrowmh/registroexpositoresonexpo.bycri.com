@@ -13,6 +13,60 @@ function base_url($path = '') {
     return $protocol . "://" . $host . "/" . ltrim($path, '/');
 }
 
+function check_remember_me() {
+    if (isset($_SESSION['expositor_id'])) {
+        return true;
+    }
+
+    if (!isset($_COOKIE['remember_me'])) {
+        return false;
+    }
+
+    $parts = explode(':', $_COOKIE['remember_me']);
+    if (count($parts) !== 2) {
+        setcookie('remember_me', '', time() - 3600, '/', '', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', true);
+        return false;
+    }
+    
+    list($selector, $validator) = $parts;
+    
+    try {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM user_tokens WHERE selector = ? AND expiry > NOW()");
+        $stmt->execute([$selector]);
+        $token = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($token && hash_equals($token['hashed_validator'], hash('sha256', $validator))) {
+            // Token is valid! Log the user in.
+            $stmt = $db->prepare("SELECT id, nombre, apellido, id_empresa FROM expositores WHERE id = ?");
+            $stmt->execute([$token['user_id']]);
+            $expositor = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($expositor) {
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+                session_regenerate_id(true);
+                $_SESSION['expositor_id'] = $expositor['id'];
+                $_SESSION['expositor_nombre'] = $expositor['nombre'] . ' ' . $expositor['apellido'];
+                $_SESSION['id_empresa'] = $expositor['id_empresa'];
+                $_SESSION['last_activity'] = time();
+                $_SESSION['created'] = time();
+                $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                
+                Security::logSecurityEvent('Auto-login successful', ['user_id' => $expositor['id']]);
+                return true;
+            }
+        }
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+    }
+    
+    // Invalid token or user not found
+    setcookie('remember_me', '', time() - 3600, '/', '', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', true);
+    return false;
+}
+
 function check_auth() {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
@@ -20,13 +74,19 @@ function check_auth() {
     
     // Check if session is valid (timeout, hijacking, etc.)
     if (!Security::validateSession()) {
-        header("Location: " . base_url('index.php'));
-        exit;
+        // Try auto-login before failing
+        if (!check_remember_me()) {
+            header("Location: " . base_url('index.php'));
+            exit;
+        }
     }
 
     if (!isset($_SESSION['expositor_id'])) {
-        header("Location: " . base_url('index.php'));
-        exit;
+        // Try auto-login if session var missing (should be handled by validateSession check usually, but good fallback)
+        if (!check_remember_me()) {
+            header("Location: " . base_url('index.php'));
+            exit;
+        }
     }
 }
 

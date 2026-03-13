@@ -6,6 +6,12 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/lib/Security.php';
 
+// Check for auto-login
+if (check_remember_me()) {
+    header("Location: dashboard.php");
+    exit;
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -46,6 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
                     Security::logSecurityEvent('Login successful', ['user_id' => $expositor['id'], 'ip' => $ip_address]);
+
+                    // Remember Me Logic
+                    if (isset($_POST['remember_me'])) {
+                        $selector = bin2hex(random_bytes(12));
+                        $validator = bin2hex(random_bytes(32));
+                        $hashed_validator = hash('sha256', $validator);
+                        $expiry = date('Y-m-d H:i:s', time() + (86400 * 30)); // 30 days
+
+                        $stmt_token = $db->prepare("INSERT INTO user_tokens (user_id, selector, hashed_validator, expiry) VALUES (?, ?, ?, ?)");
+                        $stmt_token->execute([$expositor['id'], $selector, $hashed_validator, $expiry]);
+
+                        setcookie('remember_me', $selector . ':' . $validator, time() + (86400 * 30), '/', '', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', true);
+                    }
 
                     header("Location: dashboard.php");
                     exit;
@@ -207,6 +226,10 @@ $csrf_token = Security::generateCsrfToken();
                 <div class="text-end mt-1">
                     <a href="forgot_password.php" class="text-decoration-none small text-muted">¿Olvidaste tu contraseña?</a>
                 </div>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                <label class="form-check-label text-muted" for="remember_me">Recordarme</label>
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión

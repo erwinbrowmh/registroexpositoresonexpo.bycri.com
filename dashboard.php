@@ -51,15 +51,30 @@ try {
     $stmt->execute([$expositor_id]);
     $gallery_videos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Fetch Scans
+    $stmt = $db->prepare("
+        SELECT es.*, u.nombre_completo, u.email, u.empresa, u.puesto, u.telefono, u.estado_provincia, u.ciudad, t.codigo_qr 
+        FROM expositor_scans es
+        JOIN tickets t ON es.id_ticket = t.id_ticket
+        JOIN usuarios u ON t.id_usuario = u.id_usuario
+        WHERE es.expositor_id = ? 
+        ORDER BY es.scan_time DESC
+    ");
+    $stmt->execute([$expositor_id]);
+    $scans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $total_scans = count($scans);
+
 } catch (Exception $e) {
     $error = "Error al cargar datos: " . $e->getMessage();
 }
 
 // Ensure gallery arrays are always arrays, even if queries failed or returned null
-$gallery_images = is_array($gallery_images) ? $gallery_images : [];
-$gallery_videos = is_array($gallery_videos) ? $gallery_videos : [];
+    $gallery_images = is_array($gallery_images) ? $gallery_images : [];
+    $gallery_videos = is_array($gallery_videos) ? $gallery_videos : [];
+    $scans = is_array($scans) ? $scans : [];
+    $total_scans = $total_scans ?? 0;
 
-$limit = $expositor['limite_participantes'] ?? 0;
+    $limit = $expositor['limite_participantes'] ?? 0;
 $current = $expositor['total_participantes'] ?? 0;
 $remaining = max(0, $limit - $current);
 $percent = ($limit > 0) ? ($current / $limit) * 100 : 0;
@@ -98,11 +113,16 @@ function res_url($u) {
         }
 
         .sidebar {
+            width: 280px;
             height: 100vh;
+            position: fixed;
+            overflow-y: auto;
             background-color: #1a1d20;
             color: white;
             padding-top: 20px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
         }
         .sidebar a {
             color: rgba(255,255,255,0.8);
@@ -244,15 +264,156 @@ function res_url($u) {
             70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
             100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
         }
-        .pulse-animation {
-            animation: pulse-red 2s infinite;
+        /* Mobile Responsive Improvements */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 1040;
+                transition: transform 0.3s ease-in-out;
+                height: 100dvh; /* Use dynamic viewport height if supported */
+                padding-bottom: 80px; /* Extra space for browser bars */
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0 !important;
+                padding: 10px; /* Reduced padding */
+                margin-top: 50px; /* Space for toggle button */
+            }
+            
+            /* Modal Adjustments for Mobile */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: none;
+            }
+            .modal-content {
+                border-radius: 1rem;
+            }
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            .mobile-nav-toggle {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 1050;
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                width: 45px;
+                height: 45px;
+                border-radius: 50%; /* Circle shape */
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            }
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1030;
+                backdrop-filter: blur(2px);
+            }
+            .overlay.show {
+                display: block;
+            }
+            
+            /* Typography Tweaks */
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.25rem; }
+            
+            /* Input Zoom Prevention */
+            input, select, textarea, .form-control {
+                font-size: 16px !important;
+            }
+            
+            /* Card & Layout Tweaks */
+            .card-body {
+                padding: 1rem;
+            }
+            .instruction-box {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            /* Gallery Grid */
+            .gallery-item, .upload-placeholder {
+                height: 120px; /* Smaller height on mobile */
+            }
+            
+            /* Table responsiveness improvements */
+            .table-mobile-responsive thead {
+                display: none; /* Hide headers on mobile */
+            }
+            .table-mobile-responsive tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #e0e0e0;
+                border-radius: 0.75rem;
+                background: #fff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                overflow: hidden;
+            }
+            .table-mobile-responsive tbody td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem 1rem;
+                border-top: none;
+                border-bottom: 1px solid #f0f0f0;
+                text-align: right;
+            }
+            .table-mobile-responsive tbody td:last-child {
+                border-bottom: none;
+                background-color: #f8f9fa;
+            }
+            .table-mobile-responsive tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 1rem;
+                text-align: left;
+                color: var(--secondary-color);
+                font-size: 0.9rem;
+            }
+            
+            /* Scan Form Enhancements */
+            #scan-form .input-group-lg {
+                margin-bottom: 15px;
+            }
+            #scan-form button[type="submit"] {
+                width: 100%;
+                padding: 15px;
+                font-size: 1.2rem;
+                border-radius: 50px; /* Pill shape */
+            }
+        }
+        
+        .mobile-nav-toggle {
+            display: none;
         }
     </style>
 </head>
 <body>
+    <!-- Mobile Nav Toggle -->
+    <button class="mobile-nav-toggle d-md-none" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="overlay" id="sidebarOverlay"></div>
+
     <div class="d-flex">
         <!-- Sidebar -->
-        <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; height: 100vh; position: fixed; overflow-y: auto;">
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" id="sidebar">
+            <div class="d-flex justify-content-between align-items-center d-md-none mb-3">
+                <span class="fs-5 fw-bold">Menú</span>
+                <button type="button" class="btn-close btn-close-white" id="sidebarClose"></button>
+            </div>
             <a href="dashboard.php" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none justify-content-center">
                 <div class="logo-container w-100">
                     <img src="assets/img/ONEXPO+LOGO+EVENTO-02.webp" alt="ONEXPO 2026" class="logo-img">
@@ -276,7 +437,12 @@ function res_url($u) {
                 </li>
                 <li>
                     <a href="#participantes" class="nav-link" data-bs-toggle="pill">
-                        <i class="fas fa-users me-2"></i> Participantes
+                        <i class="fas fa-users me-2"></i> Gafetes Expositores
+                    </a>
+                </li>
+                <li>
+                    <a href="#scan" class="nav-link" data-bs-toggle="pill">
+                        <i class="fas fa-qrcode me-2"></i> Escanear Convencionista
                     </a>
                 </li>
                 <li class="nav-item mt-3">
@@ -295,6 +461,12 @@ function res_url($u) {
                 <li class="nav-item mt-3">
                     <a href="assets/docs/registro_montaje.pdf" target="_blank" class="nav-link text-warning fw-bold border border-warning rounded bg-dark shadow-sm pulse-animation">
                         <i class="fas fa-file-download me-2"></i> Hoja de Registro de Montaje <span class="badge bg-danger ms-1">¡AQUÍ ESTOY!</span>
+                    </a>
+                </li>
+                <!-- Mobile Only Logout -->
+                <li class="nav-item d-md-none mt-3">
+                    <a href="logout.php" class="nav-link text-danger border border-danger rounded">
+                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
                     </a>
                 </li>
             </ul>
@@ -331,37 +503,396 @@ function res_url($u) {
                 </div>
             <?php endif; ?>
 
-            <!-- Prominent Info Alert -->
-            <div class="alert alert-warning border-3 border-warning shadow-lg mb-4 p-4 alert-dismissible fade show" role="alert" style="background-color: #fff3cd;">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-exclamation-circle text-danger fa-2x me-3 pulse-animation"></i>
-                    <h3 class="alert-heading fw-bold text-dark mb-0">¡AVISO IMPORTANTE!</h3>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                <p class="fs-5 mb-3">
-                    Los archivos que necesita llenar se encuentran en el <strong>menú lateral</strong>, en la sección de <span class="badge bg-dark text-warning">DOCUMENTOS</span>.
-                </p>
-                <div class="mt-3 p-3 bg-white rounded border border-warning shadow-sm">
-                    <ul class="list-unstyled mb-0 fs-5">
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Es <strong>muy importante</strong> que complete la documentación solicitada.
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-file-upload text-primary me-2"></i>
-                            La <strong>Hoja Responsiva</strong> debe firmarla y <strong>subirla</strong> en la sección correspondiente de su perfil (abajo).
-                        </li>
-                        <li>
-                            <i class="fas fa-clipboard-check text-danger me-2"></i>
-                            La <strong>Hoja de Registro de Montaje</strong> debe descargarla y enviarla al correo <a href="mailto:expositoresonexpo@cricongresos.com" class="fw-bold text-dark">expositoresonexpo@cricongresos.com</a>.
-                        </li>
-                    </ul>
-                </div>
-            </div>
 
-            <div class="tab-content">
+
+            <div class="tab-content" id="v-pills-tabContent">
+                <!-- Scan Tab -->
+                <div class="tab-pane fade" id="scan">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Escanear Convencionista</h2>
+                        <a href="actions/export_scans.php" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i> Exportar a Excel
+                        </a>
+                    </div>
+
+                    <div class="instruction-box mb-4">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>
+                        En este apartado podra capturar los nombres de los colaboradores que estaran en su stand durante la ONEXPO
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <form id="scan-form" class="row g-3 align-items-center">
+                                <div class="col-md-9">
+                                    <label for="qr_code" class="visually-hidden">Código QR</label>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text"><i class="fas fa-qrcode"></i></span>
+                                        <input type="text" class="form-control" id="qr_code" name="qr_code" placeholder="Escanea o escribe el código del gafete">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-camera me-2"></i> Escanear
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="scan-message" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Modal -->
+                    <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="cameraModalLabel"><i class="fas fa-qrcode me-2"></i>Escanear Código QR</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-0 bg-dark text-center position-relative">
+                                    <video id="qr-video" style="width: 100%; height: auto; max-height: 70vh; display: block;"></video>
+                                    <div class="position-absolute top-50 start-50 translate-middle text-white-50" style="pointer-events: none;">
+                                        <i class="fas fa-expand fa-3x opacity-50"></i>
+                                    </div>
+                                </div>
+                                <div class="modal-footer justify-content-center">
+                                    <small class="text-muted">Apunte la cámara al código QR del gafete</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-history me-2 text-muted"></i>Historial de Escaneos (<span id="total-scans-count"><?= $total_scans ?></span>)</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle table-mobile-responsive">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Hora</th>
+                                            <th>Nombre</th>
+                                            <th>Empresa</th>
+                                            <th>Puesto</th>
+                                            <th>Teléfono</th>
+                                            <th>Estado</th>
+                                            <th>Ciudad</th>
+                                            <th>Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scans-table-body">
+                                        <?php if (empty($scans)): ?>
+                                            <tr id="no-scans-row">
+                                                <td colspan="8" class="text-center py-4 text-muted">
+                                                    <i class="fas fa-qrcode fa-3x mb-3 d-block opacity-25"></i>
+                                                    No hay escaneos registrados aún.
+                                                </td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($scans as $scan): ?>
+                                                <tr>
+                                                    <td data-label="Hora"><?= date('d/m H:i', strtotime($scan['scan_time'])) ?></td>
+                                                    <td data-label="Nombre" class="fw-bold"><?= htmlspecialchars($scan['nombre_completo']) ?></td>
+                                                    <td data-label="Empresa"><?= htmlspecialchars($scan['empresa']) ?></td>
+                                                    <td data-label="Puesto"><?= htmlspecialchars($scan['puesto']) ?></td>
+                                                    <td data-label="Teléfono"><?= htmlspecialchars($scan['telefono'] ?? '') ?></td>
+                                                    <td data-label="Estado"><?= htmlspecialchars($scan['estado_provincia'] ?? '') ?></td>
+                                                    <td data-label="Ciudad"><?= htmlspecialchars($scan['ciudad'] ?? '') ?></td>
+                                                    <td data-label="Email"><a href="mailto:<?= htmlspecialchars($scan['email']) ?>" class="text-decoration-none"><?= htmlspecialchars($scan['email']) ?></a></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script src="lib/qr-scanner-master/qr-scanner-master/qr-scanner.umd.min.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // QR Scanner Setup
+                            const video = document.getElementById('qr-video');
+                            const cameraModalEl = document.getElementById('cameraModal');
+                            let scanner = null;
+
+                            cameraModalEl.addEventListener('shown.bs.modal', function () {
+                                if (!scanner) {
+                                    scanner = new QrScanner(video, result => {
+                                        scanner.stop();
+                                        const modalInstance = bootstrap.Modal.getInstance(cameraModalEl);
+                                        modalInstance.hide();
+                                        
+                                        const input = document.getElementById('qr_code');
+                                        input.value = result.data || result;
+                                        
+                                        // Submit immediately
+                                        document.getElementById('scan-form').dispatchEvent(new Event('submit'));
+                                    }, {
+                                        highlightScanRegion: true,
+                                        highlightCodeOutline: true,
+                                    });
+                                }
+                                scanner.start().catch(err => {
+                                    console.error(err);
+                                    alert('Error al acceder a la cámara. Verifique permisos y conexión segura (HTTPS).');
+                                    const modalInstance = bootstrap.Modal.getInstance(cameraModalEl);
+                                    modalInstance.hide();
+                                });
+                            });
+
+                            cameraModalEl.addEventListener('hidden.bs.modal', function () {
+                                if (scanner) {
+                                    scanner.stop();
+                                }
+                                if (window.innerWidth > 768) {
+                                    document.getElementById('qr_code').focus();
+                                }
+                            });
+
+                            // Focus on input when tab is shown (Desktop only)
+                            const scanTab = document.querySelector('a[href="#scan"]');
+                            scanTab.addEventListener('shown.bs.tab', function (e) {
+                                if (window.innerWidth > 768) {
+                                    const input = document.getElementById('qr_code');
+                                    input.focus();
+                                }
+                            });
+
+                            // Real-time correction for scanner input (handle ' ? ´ ` chars)
+                            const qrInput = document.getElementById('qr_code');
+                            qrInput.addEventListener('input', function() {
+                                let val = this.value;
+                                // Replace common scanner mapping errors
+                                if (val.match(/['?´`]/)) {
+                                    this.value = val.replace(/['?´`]/g, '-');
+                                }
+                            });
+
+                            // --- NFC INTEGRATION START ---
+                            
+                            // Helper to process scanned code (QR or NFC)
+                            window.processScannedCode = (code) => {
+                                const input = document.getElementById('qr_code');
+                                if (!code) return;
+                                
+                                // Clean code
+                                code = code.trim();
+                                // Apply same fix as QR
+                                if (code.match(/['?´`]/)) {
+                                    code = code.replace(/['?´`]/g, '-');
+                                }
+                                
+                                // Validate Format: ONX-0000-0 or ONX-0000-00
+                                const match = code.match(/ONX-\d+-\d+/i);
+                                if (match) {
+                                    input.value = match[0].toUpperCase();
+                                    // Trigger submit
+                                    document.getElementById('scan-form').dispatchEvent(new Event('submit'));
+                                } else {
+                                    // Optional: Feedback for invalid format
+                                    console.log('Ignored invalid format:', code);
+                                }
+                            };
+
+                            // 1. Web NFC (Mobile/Tablet - Android/Chrome)
+                            if ('NDEFReader' in window) {
+                                const scanTab = document.querySelector('a[href="#scan"]');
+                                scanTab.addEventListener('click', async function () {
+                                    try {
+                                        const ndef = new NDEFReader();
+                                        await ndef.scan();
+                                        console.log("NFC Scan started successfully.");
+                                        
+                                        ndef.onreading = event => {
+                                            const decoder = new TextDecoder();
+                                            for (const record of event.message.records) {
+                                                if (record.recordType === "text") {
+                                                    const text = decoder.decode(record.data);
+                                                    window.processScannedCode(text);
+                                                }
+                                            }
+                                        };
+                                        
+                                        // Visual indicator
+                                        const msgDiv = document.getElementById('scan-message');
+                                        if(!document.getElementById('nfc-mobile-status')) {
+                                            const badge = document.createElement('div');
+                                            badge.id = 'nfc-mobile-status';
+                                            badge.className = 'alert alert-info mt-2 py-1';
+                                            badge.innerHTML = '<i class="fas fa-wifi"></i> NFC Móvil Activo';
+                                            msgDiv.parentNode.insertBefore(badge, msgDiv);
+                                        }
+                                        
+                                    } catch (error) {
+                                        console.log(`Error! Scan failed to start: ${error}.`);
+                                    }
+                                });
+                            }
+
+                            // 2. Desktop Bridge (WebSocket for Local NFC Reader)
+                            let bridgeSocket = null;
+                            const connectBridge = () => {
+                                if (bridgeSocket && (bridgeSocket.readyState === WebSocket.OPEN || bridgeSocket.readyState === WebSocket.CONNECTING)) return;
+                                
+                                bridgeSocket = new WebSocket('ws://localhost:3000');
+                                
+                                bridgeSocket.onopen = () => {
+                                    console.log("Connected to NFC Bridge");
+                                    const msgDiv = document.getElementById('scan-message');
+                                    if(!document.getElementById('nfc-bridge-status')) {
+                                        const badge = document.createElement('div');
+                                        badge.id = 'nfc-bridge-status';
+                                        badge.className = 'alert alert-success mt-2 py-1';
+                                        badge.innerHTML = '<i class="fas fa-link"></i> Lector NFC de Escritorio Conectado';
+                                        msgDiv.parentNode.insertBefore(badge, msgDiv);
+                                    }
+                                };
+                                
+                                bridgeSocket.onmessage = (event) => {
+                                    try {
+                                        const data = JSON.parse(event.data);
+                                        // Support for bridge.py (raw_dump with text)
+                                        if (data.type === 'raw_dump' && data.text && data.text.trim()) {
+                                             window.processScannedCode(data.text);
+                                        } 
+                                        // Support for bridge-pcsc.js (tag_detected with uid)
+                                        else if (data.type === 'tag_detected' && data.uid) {
+                                             window.processScannedCode(data.uid);
+                                        }
+                                    } catch(e) { console.error(e); }
+                                };
+                                
+                                bridgeSocket.onclose = () => {
+                                    const el = document.getElementById('nfc-bridge-status');
+                                    if(el) el.remove();
+                                    // Retry connection every 5 seconds
+                                    setTimeout(connectBridge, 5000);
+                                };
+                                
+                                bridgeSocket.onerror = (e) => {
+                                    // Silent error, will retry on close
+                                };
+                            };
+
+                            // Start trying to connect to bridge immediately
+                            connectBridge();
+                            // --- NFC INTEGRATION END ---
+
+                            document.getElementById('scan-form').addEventListener('submit', function(e) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                const input = document.getElementById('qr_code');
+                                let code = input.value.trim();
+
+                                // Fix scanner mapping error: replace ' with - (ONX'0000'0 -> ONX-0000-0)
+                                if (code.match(/['?´`]/)) {
+                                    code = code.replace(/['?´`]/g, '-');
+                                    input.value = code;
+                                }
+                                
+                                if (!code) {
+                                    const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+                                    modal.show();
+                                    return;
+                                }
+
+                                const msgDiv = document.getElementById('scan-message');
+                                const submitBtn = document.querySelector('#scan-form button[type="submit"]');
+                                const originalBtnText = submitBtn.innerHTML;
+
+                                msgDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i> Procesando...</div>';
+                                submitBtn.disabled = true;
+                                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Escaneando...';
+
+                                fetch('actions/scan_attendee.php', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                    },
+                                    body: 'qr_code=' + encodeURIComponent(code)
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnText;
+
+                                    if (data.success) {
+                                        msgDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i> ' + data.message + '</div>';
+                                        input.value = '';
+                                        input.focus();
+                                        
+                                        // Update table
+                                        const tbody = document.getElementById('scans-table-body');
+                                        const noScans = document.getElementById('no-scans-row');
+                                        if (noScans) noScans.remove();
+                                        
+                                        const row = document.createElement('tr');
+                                        row.className = 'table-success'; // Highlight new row
+                                        row.innerHTML = `
+                                            <td>${data.scan.time}</td>
+                                            <td class="fw-bold">${data.scan.nombre}</td>
+                                            <td>${data.scan.empresa}</td>
+                                            <td>${data.scan.puesto}</td>
+                                            <td>${data.scan.telefono || ''}</td>
+                                            <td>${data.scan.estado || ''}</td>
+                                            <td>${data.scan.ciudad || ''}</td>
+                                            <td><a href="mailto:${data.scan.email}" class="text-decoration-none">${data.scan.email}</a></td>
+                                        `;
+                                        tbody.insertBefore(row, tbody.firstChild);
+                                        
+                                        // Update counter
+                                        const counter = document.getElementById('total-scans-count');
+                                        counter.textContent = parseInt(counter.textContent) + 1;
+                                        
+                                        // Remove highlight after a moment
+                                        setTimeout(() => row.classList.remove('table-success'), 2000);
+                                        
+                                    } else {
+                                        msgDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i> ' + data.message + '</div>';
+                                        input.select();
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnText;
+                                    msgDiv.innerHTML = '<div class="alert alert-danger">Error de conexión. Intente de nuevo.</div>';
+                                });
+                            });
+                        });
+                    </script>
+                </div>
                 <!-- Perfil Tab -->
                 <div class="tab-pane fade show active" id="perfil">
+                    <!-- Prominent Info Alert -->
+                    <div class="alert alert-warning border-3 border-warning shadow-lg mb-4 p-4 alert-dismissible fade show" role="alert" style="background-color: #fff3cd;">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-exclamation-circle text-danger fa-2x me-3 pulse-animation"></i>
+                            <h3 class="alert-heading fw-bold text-dark mb-0">¡AVISO IMPORTANTE!</h3>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <p class="fs-5 mb-3">
+                            Los archivos que necesita llenar se encuentran en el <strong>menú lateral</strong>, en la sección de <span class="badge bg-dark text-warning">DOCUMENTOS</span>.
+                        </p>
+                        <div class="mt-3 p-3 bg-white rounded border border-warning shadow-sm">
+                            <ul class="list-unstyled mb-0 fs-5">
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Es <strong>muy importante</strong> que complete la documentación solicitada.
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-file-upload text-primary me-2"></i>
+                                    La <strong>Hoja Responsiva</strong> debe firmarla y <strong>subirla</strong> en la sección correspondiente de su perfil (abajo).
+                                </li>
+                                <li>
+                                    <i class="fas fa-clipboard-check text-danger me-2"></i>
+                                    La <strong>Hoja de Registro de Montaje</strong> debe descargarla y enviarla al correo <a href="mailto:expositoresonexpo@cricongresos.com" class="fw-bold text-dark">expositoresonexpo@cricongresos.com</a>.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <h2 class="mb-4">Datos de Contacto</h2>
                     <div class="card shadow-sm">
                         <div class="card-body">
@@ -370,8 +901,7 @@ function res_url($u) {
                                 
                                 <div class="instruction-box">
                                     <i class="fas fa-info-circle me-2 text-primary"></i>
-                                    <strong>Gestión de Perfil:</strong> Aquí puede actualizar la información de su empresa que será visible para los visitantes. 
-                                    Los campos marcados como <em>Solo lectura</em> son gestionados por el administrador.
+                                    <strong>Gestión de Perfil:</strong> Aquí puede actualizar la información del contacto de su empresa que aparecerá en el directorio de expositores de la ONEXPO. Los campos marcados como <em>Solo lectura</em> son gestionados por el administrador.
                                 </div>
 
                                 <h5 class="text-primary mb-3"><i class="fas fa-id-card me-2"></i>Información Personal</h5>
@@ -407,8 +937,8 @@ function res_url($u) {
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Empresa</label>
-                                        <input type="text" class="form-control" value="<?= htmlspecialchars($expositor['nombre_empresa']) ?>" readonly disabled>
+                                        <label for="nombre_empresa" class="form-label fw-bold">Empresa/Nombre Comercial</label>
+                                        <input type="text" class="form-control" id="nombre_empresa" name="nombre_empresa" value="<?= htmlspecialchars($expositor['nombre_empresa']) ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <?php
@@ -422,6 +952,14 @@ function res_url($u) {
                                             "Energías alternativas y transición energética",
                                             "Servicios financieros, seguros y soporte corporativo",
                                             "Marketing, diseño y experiencia del cliente",
+                                            "Constructoras y servicios integrales",
+                                            "Servicio de instalación y mantenimiento a estaciones de servicio",
+                                            "Imagen, señalización y techumbre",
+                                            "Tanques",
+                                            "Auto distribuidores de equipos",
+                                            "Software y sistemas de administración",
+                                            "Comercializadores de Combustibles",
+                                            "Marcas de estaciones de servicio",
                                             "Otro"
                                         ];
                                         $currentGiro = $expositor['giro'] ?? '';
@@ -470,11 +1008,7 @@ function res_url($u) {
                                     <div class="form-text">Descripción detallada que aparecerá en su perfil (máximo 7500 caracteres). Opcional.</div>
                                 </div>
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">Razón Social</label>
-                                        <input type="text" class="form-control" value="<?= htmlspecialchars($expositor['razon_social']) ?>" readonly disabled>
-                                    </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <label class="form-label fw-bold">Número de Stand Asignado</label>
                                         <input type="text" class="form-control" value="<?= htmlspecialchars($expositor['stand'] ?? 'Pendiente') ?>" readonly disabled style="background-color: #e8f5e9; font-weight: bold; color: #2e7d32;">
                                     </div>
@@ -562,29 +1096,29 @@ function res_url($u) {
                                 </div>
                                 
                                 <div class="row mb-3" id="gallery-images-container">
-                                    <?php foreach ($gallery_images as $image): ?>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="gallery-item">
-                                                <img src="<?= htmlspecialchars(res_url($image['imagen_ruta'])) ?>" class="w-100" alt="Imagen de Galería" style="height: 150px; object-fit: cover;">
-                                                <div class="delete-overlay">
-                                                    <button type="button" class="btn btn-light btn-sm delete-gallery-item" data-id="<?= $image['id'] ?>" data-type="image">
-                                                        <i class="fas fa-trash text-danger"></i> Eliminar
-                                                    </button>
-                                                </div>
+                                <?php foreach ($gallery_images as $image): ?>
+                                    <div class="col-6 col-md-3 mb-3">
+                                        <div class="gallery-item">
+                                            <img src="<?= htmlspecialchars(res_url($image['imagen_ruta'])) ?>" class="w-100" alt="Imagen de Galería" style="height: 150px; object-fit: cover;">
+                                            <div class="delete-overlay">
+                                                <button type="button" class="btn btn-light btn-sm delete-gallery-item" data-id="<?= $image['id'] ?>" data-type="image">
+                                                    <i class="fas fa-trash text-danger"></i> Eliminar
+                                                </button>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
-                                    
-                                    <?php if (count($gallery_images) < 5): ?>
-                                        <div class="col-md-3 mb-3" id="image-upload-trigger-container">
-                                            <div class="upload-placeholder" onclick="document.getElementById('gallery_images').click()">
-                                                <i class="fas fa-plus fa-2x mb-2"></i>
-                                                <span>Agregar</span>
-                                            </div>
-                                            <input type="file" class="d-none" id="gallery_images" name="gallery_images[]" accept="image/jpeg" multiple onchange="handleFileSelect(this, 'image')">
+                                    </div>
+                                <?php endforeach; ?>
+                                
+                                <?php if (count($gallery_images) < 5): ?>
+                                    <div class="col-6 col-md-3 mb-3" id="image-upload-trigger-container">
+                                        <div class="upload-placeholder" onclick="document.getElementById('gallery_images').click()">
+                                            <i class="fas fa-plus fa-2x mb-2"></i>
+                                            <span>Agregar</span>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
+                                        <input type="file" class="d-none" id="gallery_images" name="gallery_images[]" accept="image/jpeg" multiple onchange="handleFileSelect(this, 'image')">
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                                 <div id="pending-images-list" class="mb-4"></div>
 
                                 <hr class="my-4">
@@ -597,29 +1131,29 @@ function res_url($u) {
                                 </div>
 
                                 <div class="row mb-3" id="gallery-videos-container">
-                                    <?php foreach ($gallery_videos as $video): ?>
-                                        <div class="col-md-3 mb-3">
-                                            <div class="gallery-item">
-                                                <video src="<?= htmlspecialchars(res_url($video['video_ruta'])) ?>" class="w-100" style="height: 150px; object-fit: cover;"></video>
-                                                <div class="delete-overlay">
-                                                    <button type="button" class="btn btn-light btn-sm delete-gallery-item" data-id="<?= $video['id'] ?>" data-type="video">
-                                                        <i class="fas fa-trash text-danger"></i> Eliminar
-                                                    </button>
-                                                </div>
+                                <?php foreach ($gallery_videos as $video): ?>
+                                    <div class="col-6 col-md-3 mb-3">
+                                        <div class="gallery-item">
+                                            <video src="<?= htmlspecialchars(res_url($video['video_ruta'])) ?>" class="w-100" style="height: 150px; object-fit: cover;"></video>
+                                            <div class="delete-overlay">
+                                                <button type="button" class="btn btn-light btn-sm delete-gallery-item" data-id="<?= $video['id'] ?>" data-type="video">
+                                                    <i class="fas fa-trash text-danger"></i> Eliminar
+                                                </button>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
+                                    </div>
+                                <?php endforeach; ?>
 
-                                    <?php if (count($gallery_videos) < 5): ?>
-                                        <div class="col-md-3 mb-3" id="video-upload-trigger-container">
-                                            <div class="upload-placeholder" onclick="document.getElementById('gallery_videos').click()">
-                                                <i class="fas fa-plus fa-2x mb-2"></i>
-                                                <span>Agregar</span>
-                                            </div>
-                                            <input type="file" class="d-none" id="gallery_videos" name="gallery_videos[]" accept="video/mp4" multiple onchange="handleFileSelect(this, 'video')">
+                                <?php if (count($gallery_videos) < 5): ?>
+                                    <div class="col-6 col-md-3 mb-3" id="video-upload-trigger-container">
+                                        <div class="upload-placeholder" onclick="document.getElementById('gallery_videos').click()">
+                                            <i class="fas fa-plus fa-2x mb-2"></i>
+                                            <span>Agregar</span>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
+                                        <input type="file" class="d-none" id="gallery_videos" name="gallery_videos[]" accept="video/mp4" multiple onchange="handleFileSelect(this, 'video')">
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                                 <div id="pending-videos-list" class="mb-4"></div>
 
                                 <hr class="my-4">
@@ -742,12 +1276,12 @@ function res_url($u) {
                     </div>
                 </div>
 
-                <!-- Participantes Tab -->
+                <!-- Gafetes Expositores Tab -->
                 <div class="tab-pane fade" id="participantes">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Gestión de Participantes</h2>
+                        <h2>Gafetes Expositores</h2>
                         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal" <?= ($current >= $limit) ? 'disabled' : '' ?>>
-                            <i class="fas fa-plus me-2"></i> Agregar Participante
+                            <i class="fas fa-plus me-2"></i> Agregar Expositor
                         </button>
                     </div>
 
@@ -816,7 +1350,7 @@ function res_url($u) {
                                             <tr>
                                                 <td colspan="6" class="text-center py-5 text-muted">
                                                     <i class="fas fa-users fa-3x mb-3 text-secondary"></i><br>
-                                                    No hay participantes registrados.
+                                                    No hay expositores registrados.
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
@@ -843,7 +1377,7 @@ function res_url($u) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0" style="border-radius: 15px;">
                 <div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
-                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Agregar Participante</h5>
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Agregar Expositor</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="actions/add_participant.php" method="POST">
@@ -902,7 +1436,7 @@ function res_url($u) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0" style="border-radius: 15px;">
                 <div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;">
-                    <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Editar Participante</h5>
+                    <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Editar Expositor</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="actions/edit_participant.php" method="POST">
@@ -969,7 +1503,7 @@ function res_url($u) {
                     <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                     <input type="hidden" name="id" id="delete_id">
                     <div class="modal-body">
-                        <p>¿Está seguro que desea eliminar a este participante? Esta acción no se puede deshacer.</p>
+                        <p>¿Está seguro que desea eliminar a este expositor? Esta acción no se puede deshacer.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -1120,7 +1654,7 @@ function res_url($u) {
         });
 
         // Prevent double submission
-        document.querySelectorAll('form').forEach(function(form) {
+        document.querySelectorAll('form:not(#scan-form)').forEach(function(form) {
             form.addEventListener('submit', function(e) {
                 if (!form.checkValidity()) {
                     return;
@@ -1146,6 +1680,16 @@ function res_url($u) {
                 })
                 .catch(error => console.error('Error keeping session alive:', error));
         }, 300000); // Every 5 minutes
+
+        // Prevent modal autofocus on mobile to avoid zoom/keyboard jump
+        document.addEventListener('shown.bs.modal', function(event) {
+            if (window.innerWidth <= 768) {
+                const activeElement = document.activeElement;
+                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT')) {
+                    activeElement.blur();
+                }
+            }
+        });
     </script>
 <script>
             $(document).ready(function() {
@@ -1223,5 +1767,39 @@ function res_url($u) {
                 });
             });
         </script>
+    <script>
+        // Mobile Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('show');
+            sidebarOverlay.classList.toggle('show');
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', toggleSidebar);
+        }
+
+        if (sidebarClose) {
+            sidebarClose.addEventListener('click', toggleSidebar);
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        }
+
+        // Close sidebar when clicking a link on mobile
+        const sidebarLinks = sidebar.querySelectorAll('a');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+    </script>
     </body>
 </html>

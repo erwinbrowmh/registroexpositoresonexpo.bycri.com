@@ -1,0 +1,13 @@
+{
+  "name": "nfc-bridge",
+  "version": "1.0.0",
+  "description": "NFC Bridge for ACR122U using Official PCSC Drivers",
+  "main": "bridge-pcsc.js",
+  "dependencies": {
+    "nfc-pcsc": "^0.8.1",
+    "ws": "^8.13.0"
+  },
+  "scripts": {
+    "start": "node bridge-pcsc.js"
+  }
+}

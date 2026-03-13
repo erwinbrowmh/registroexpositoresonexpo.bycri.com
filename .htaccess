@@ -33,3 +33,8 @@
     php_value max_execution_time 300
     php_value max_input_time 300
 </IfModule>
+
+# Custom Error Pages
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php
+ErrorDocument 403 /403.php

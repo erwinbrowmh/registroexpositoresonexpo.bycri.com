@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderParticipants();
             participanteForm.reset();
         } else {
-            alert('Por favor, complete todos los campos del participante.');
+            alert('Por favor, complete todos los campos del expositor.');
         }
     });
 

@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $correo = filter_input(INPUT_POST, 'correo', FILTER_SANITIZE_EMAIL);
     $telefono = Security::sanitizeInput($_POST['telefono'] ?? '');
     $cargo = Security::sanitizeInput($_POST['cargo'] ?? '');
+    $nombre_empresa = Security::sanitizeInput($_POST['nombre_empresa'] ?? '');
     $giro = Security::sanitizeInput($_POST['giro'] ?? '');
     $requiere_mampara = isset($_POST['requiere_mampara']) ? (int)$_POST['requiere_mampara'] : 0;
     $rotulo_antepecho = Security::sanitizeInput($_POST['rotulo_antepecho'] ?? '');
@@ -64,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($correo !== '') { $updateFields[] = "correo = :correo"; $params[':correo'] = $correo; }
         if ($telefono !== '') { $updateFields[] = "telefono = :telefono"; $params[':telefono'] = $telefono; }
         if ($cargo !== '') { $updateFields[] = "cargo = :cargo"; $params[':cargo'] = $cargo; }
+        if ($nombre_empresa !== '') { $updateFields[] = "nombre_empresa = :nombre_empresa"; $params[':nombre_empresa'] = $nombre_empresa; }
         if ($giro !== '') { $updateFields[] = "giro = :giro"; $params[':giro'] = $giro; }
         // Campos boolean/numéricos: siempre permitir actualización si vienen en POST
         $updateFields[] = "requiere_mampara = :requiere_mampara"; $params[':requiere_mampara'] = $requiere_mampara;

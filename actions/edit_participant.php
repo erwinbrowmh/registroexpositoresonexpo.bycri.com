@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$nombre, $cargo, $empresa, $correo, $telefono, $id, $expositor_id]);
                     
                     if ($stmt->rowCount() > 0) {
-                        $_SESSION['message'] = "Participante actualizado.";
+                        $_SESSION['message'] = "Expositor actualizado.";
                     } else {
                         $_SESSION['info'] = "No se realizaron cambios.";
                     }
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      $_SESSION['error'] = "Error al obtener datos de la empresa.";
                 }
             } catch (Exception $e) {
-                $_SESSION['error'] = "Error al actualizar participante.";
+                $_SESSION['error'] = "Error al actualizar expositor.";
             }
         }
     } else {
