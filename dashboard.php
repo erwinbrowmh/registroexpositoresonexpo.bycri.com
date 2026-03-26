@@ -20,7 +20,7 @@ try {
 
     // Fetch Exhibitor + Company Info
     $stmt = $db->prepare("
-        SELECT ex.*, COALESCE(e.nombre_empresa, ex.razon_social) as nombre_empresa, e.limite_participantes,
+        SELECT ex.*, COALESCE(NULLIF(ex.razon_social, ''), e.nombre_empresa) as nombre_empresa, e.limite_participantes,
         (SELECT COUNT(*) FROM participantes WHERE expositor_id = ex.id) as total_participantes
         FROM expositores ex
         LEFT JOIN empresas e ON ex.id_empresa = e.id

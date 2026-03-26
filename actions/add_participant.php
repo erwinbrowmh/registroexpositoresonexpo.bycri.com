@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     SELECT 
                         (SELECT COUNT(*) FROM participantes WHERE expositor_id = :expositor_id_sub) as current_count,
                         COALESCE(e.limite_participantes, 0) as limite_participantes,
-                        COALESCE(e.nombre_empresa, ex.razon_social) as nombre_empresa
+                        COALESCE(NULLIF(ex.razon_social, ''), e.nombre_empresa) as nombre_empresa
                     FROM expositores ex
                     LEFT JOIN empresas e ON ex.id_empresa = e.id
                     WHERE ex.id = :expositor_id

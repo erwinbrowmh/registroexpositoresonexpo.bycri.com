@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db = Database::getInstance()->getConnection();
     
                 // Get company name
-                $stmt_company = $db->prepare("SELECT COALESCE(e.nombre_empresa, ex.razon_social) as nombre_empresa FROM expositores ex LEFT JOIN empresas e ON ex.id_empresa = e.id WHERE ex.id = ?");
+                $stmt_company = $db->prepare("SELECT COALESCE(NULLIF(ex.razon_social, ''), e.nombre_empresa) as nombre_empresa FROM expositores ex LEFT JOIN empresas e ON ex.id_empresa = e.id WHERE ex.id = ?");
                 $stmt_company->execute([$expositor_id]);
                 $empresa = $stmt_company->fetchColumn();
     

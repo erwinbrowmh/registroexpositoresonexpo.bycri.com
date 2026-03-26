@@ -65,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($correo !== '') { $updateFields[] = "correo = :correo"; $params[':correo'] = $correo; }
         if ($telefono !== '') { $updateFields[] = "telefono = :telefono"; $params[':telefono'] = $telefono; }
         if ($cargo !== '') { $updateFields[] = "cargo = :cargo"; $params[':cargo'] = $cargo; }
-        if ($nombre_empresa !== '') { $updateFields[] = "nombre_empresa = :nombre_empresa"; $params[':nombre_empresa'] = $nombre_empresa; }
         if ($giro !== '') { $updateFields[] = "giro = :giro"; $params[':giro'] = $giro; }
         // Campos boolean/numéricos: siempre permitir actualización si vienen en POST
         $updateFields[] = "requiere_mampara = :requiere_mampara"; $params[':requiere_mampara'] = $requiere_mampara;
@@ -77,6 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($instagram !== '') { $updateFields[] = "instagram = :instagram"; $params[':instagram'] = $instagram; }
         if ($whatsapp !== '') { $updateFields[] = "whatsapp = :whatsapp"; $params[':whatsapp'] = $whatsapp; }
         if ($descripcion_breve !== '') { $updateFields[] = "descripcion_breve = :descripcion_breve"; $params[':descripcion_breve'] = $descripcion_breve; }
+
+        if ($nombre_empresa !== '') {
+            $updateFields[] = "razon_social = :razon_social";
+            $params[':razon_social'] = $nombre_empresa;
+        }
 
         // --- Handle Logo Upload via API ---
         if (isset($_FILES['logo_ruta']) && $_FILES['logo_ruta']['error'] === UPLOAD_ERR_OK) {
